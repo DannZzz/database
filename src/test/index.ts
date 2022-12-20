@@ -3,16 +3,19 @@ import { createDatabase, Schema, Value } from "..";
 createDatabase("./db").then(async (db) => {
   const model = await db.createModel(
     "users",
-    new Schema<{ hello?: string }>({
-      hello: new Value("string", { default: "hello" }),
+    new Schema<{ hello?: string; das?: number }>({
+      hello: new Value("string", { default: "hello", unique: true }),
+      das: new Value("number", { default: Math.random() }),
     })
   );
 
-  console.log(await model.all());
-  const created = await model.create({});
-  console.log(await model.all());
-  await created.delete();
-  console.log(await model.all());
+  // await model.create({ hello: "asd" });
+  // await model.create({ hello: "das" });
+  // await model.create({ hello: "lolitdsaa" });
+  // await model.create({ das: 10 });
+
+  console.log(await model.all({}));
+  // console.log(await model.get({ hello: "asd" }));
 
   // await model.getById("");
 });

@@ -25,8 +25,10 @@ export class Document<T extends AnyObject> {
       (this as any)[k] = data[k];
     }
 
+    let updateDefs = false;
     for (let k in options?.schema?.schema) {
       if (!(k in data) && options?.schema?.schema[k].default !== undefined) {
+        if (!updateDefs) updateDefs = true;
         (this as any)[k] = options?.schema?.schema[k].default;
       }
     }
@@ -51,6 +53,26 @@ export class Document<T extends AnyObject> {
       value: !!data,
       enumerable: false,
     });
+
+    if (updateDefs) this.updateDefaults();
+  }
+
+  private async updateDefaults() {
+    try {
+      const db = ((await readModel(this.dbPath, this.modelName)) as any[]).map(
+        (obj) => toReadable(obj, this._enc)
+      );
+
+      const index = db.findIndex((f) => f._id === this._id);
+
+      db[index] = this;
+
+      await writeModel(
+        this.dbPath,
+        this.modelName,
+        db.map((obj) => toBase(obj, this._enc))
+      );
+    } catch {}
   }
 
   exists() {
