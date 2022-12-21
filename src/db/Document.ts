@@ -1,16 +1,22 @@
-import { AnyObject, ObjectWithId } from "../typing/types";
+import {
+  AnyObject,
+  ObjectWithId,
+  ReservedObject,
+  ReservedValues,
+} from "../typing/types";
 import { toBase, toReadable } from "../utils/enc";
 import { readModel, writeModel } from "../utils/fs";
 import { Schema } from "./Schema";
 
 export type WithDocument<T extends AnyObject> = Document<T> & T;
 
-export class Document<T extends AnyObject> {
+export class Document<T extends AnyObject> implements ReservedValues {
   _id: string;
-  private _exists: boolean;
+  _createdAt: Date;
   private dbPath: string;
   private modelName: string;
   private _enc: string;
+  private schema: Schema<T>;
 
   constructor(
     options: {
@@ -19,17 +25,22 @@ export class Document<T extends AnyObject> {
       enc_pass: string;
       schema: Schema<T>;
     },
-    data: T & { _id: string }
+    data: ReservedObject<T>
   ) {
     for (let k in data) {
       (this as any)[k] = data[k];
+      if (options.schema.schemaWithStringKey[k] === "date") {
+        this[k] = new Date(data[k]);
+      }
     }
+    this._createdAt = new Date(data._createdAt);
 
     let updateDefs = false;
     for (let k in options?.schema?.schema) {
-      if (!(k in data) && options?.schema?.schema[k].default !== undefined) {
+      const def = options?.schema?.schema?.[k].default;
+      if (!(k in data) && def !== undefined) {
         if (!updateDefs) updateDefs = true;
-        (this as any)[k] = options?.schema?.schema[k].default;
+        (this as any)[k] = def instanceof Function ? def() : def;
       }
     }
 
@@ -57,6 +68,18 @@ export class Document<T extends AnyObject> {
     if (updateDefs) this.updateDefaults();
   }
 
+  clone(): Document<T> {
+    return new Document(
+      {
+        dbPath: this.dbPath,
+        enc_pass: this._enc,
+        schema: this.schema,
+        modelName: this.modelName,
+      },
+      this as any
+    );
+  }
+
   private async updateDefaults() {
     try {
       const db = ((await readModel(this.dbPath, this.modelName)) as any[]).map(
@@ -75,8 +98,14 @@ export class Document<T extends AnyObject> {
     } catch {}
   }
 
-  exists() {
-    return !!this._exists;
+  toJson(): object {
+    const obj = { ...this, _createdAt: this._createdAt.getTime() };
+    for (let k in this) {
+      if ((this.schema.schemaWithStringKey as any)[k] === "date") {
+        obj[k] = (this[k] as any).getTime();
+      }
+    }
+    return obj;
   }
 
   async delete() {

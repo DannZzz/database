@@ -1,5 +1,5 @@
 import { typeCheck } from "type-check";
-import { AnyObject } from "../typing/types";
+import { AnyObject, ReservedValues } from "../typing/types";
 
 interface NamedTypes {
   string: string;
@@ -7,6 +7,7 @@ interface NamedTypes {
   array: any[];
   object: object;
   boolean: boolean;
+  date: Date;
 }
 
 export type FromType<T extends any> = T extends string
@@ -17,18 +18,20 @@ export type FromType<T extends any> = T extends string
   ? "boolean"
   : T extends any[]
   ? "array"
+  : T extends Date
+  ? "date"
   : T extends object
   ? "object"
   : keyof NamedTypes;
 
 export class Value<T extends any> {
   readonly type: FromType<T>;
-  readonly default?: T;
+  readonly default?: T | (() => T);
   readonly unique: boolean = false;
   constructor(
     type: FromType<T>,
     options: {
-      default?: T;
+      default?: T | (() => T);
       unique?: boolean;
     } = {}
   ) {
@@ -46,12 +49,14 @@ export class Value<T extends any> {
 type ParseValueType<T extends AnyObject> = { [k in keyof T]: Value<T[k]> };
 
 export class Schema<T extends AnyObject = unknown> {
-  schemaWithStringKey: { [k in keyof T]: FromType<T> };
+  schemaWithStringKey: {
+    [k in keyof Omit<T, keyof ReservedValues>]: FromType<T>;
+  };
 
-  constructor(readonly schema: ParseValueType<T>) {
+  constructor(readonly schema: ParseValueType<Omit<T, keyof ReservedValues>>) {
     this.schemaWithStringKey = {} as any;
     for (let k in schema) {
-      this.schemaWithStringKey[k] = schema[k].type;
+      (this.schemaWithStringKey as any)[k] = schema[k].type;
     }
   }
 

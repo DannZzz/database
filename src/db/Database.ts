@@ -46,9 +46,9 @@ export class Database {
       enc_pass: this._enc,
     });
     try {
-      const p = path.join(this.path, modelName + ".json");
+      const p = path.join(this.path, modelName + ".dann");
       await fs.readFile(p).catch(() => {
-        fs.writeFile(p, "[]");
+        fs.writeFile(p, "");
       });
     } catch {
       throw new Error(

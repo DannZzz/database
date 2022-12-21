@@ -6,7 +6,8 @@
     "outDir": "dist",
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "declaration": true
   },
   "include": ["src"],
   "exclude": ["test"]
