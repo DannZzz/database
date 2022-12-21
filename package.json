@@ -28,5 +28,8 @@
     "@types/crypto-js": "^4.1.1",
     "@types/node": "^18.11.17",
     "@types/type-check": "^0.3.27"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
