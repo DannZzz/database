@@ -20,28 +20,12 @@ import { FilterFunction } from "../utils/filter";
 import { UpdateFunction } from "../utils/update";
 import { BaseEvent } from "./Event";
 
-interface ModelOptions<T extends any> {
-  schema: Schema<T>;
-  dbPath: string;
-  modelName: string;
-  enc_pass?: string;
-}
-
 export class Model<T extends AnyObject> extends BaseEvent<T> {
   private readonly dbPath: string;
-  schema: Schema<T>;
-  modelName: string;
   private readonly _enc: string;
 
-  constructor(options: ModelOptions<T>) {
+  constructor(readonly modelName: string, readonly schema: Schema<T>) {
     super();
-    this.dbPath = options.dbPath;
-    this.schema = options.schema;
-    this.modelName = options.modelName;
-    Object.defineProperty(this, "_enc", {
-      value: options.enc_pass,
-      enumerable: false,
-    });
   }
 
   private async db(): Promise<ObjectWithId[]>;
@@ -50,6 +34,8 @@ export class Model<T extends AnyObject> extends BaseEvent<T> {
   private async db(
     onlyArr: boolean | "document" = false
   ): Promise<ObjectWithId[] | string[] | WithDocument<T>> {
+    if (!this.dbPath || !this._enc)
+      throw new Error(`Model ${this.modelName} is not registered`);
     const arr = (await readModel(this.dbPath, this.modelName)) || [];
     if (onlyArr) {
       if (onlyArr === "document") {

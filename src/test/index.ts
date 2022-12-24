@@ -1,7 +1,7 @@
 import { createDatabase, Schema, Value, Model, Database } from "..";
 
 createDatabase("./db").then(async (db) => {
-  const model = await db.createModel(
+  const model = new Model(
     "users",
     new Schema<{ hello?: string; das?: number; date?: Date }>({
       hello: new Value("string", { default: () => "hello" }),
@@ -9,6 +9,8 @@ createDatabase("./db").then(async (db) => {
       date: new Value("date", { default: new Date() }),
     })
   );
+
+  await db.registerModel(model);
 
   model.on("create", (doc) => {
     console.log("event", doc);

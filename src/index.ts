@@ -1,8 +1,9 @@
-import { Database, DatabaseOptions } from "./db/Database";
 import * as path from "path";
+import fs from "fs/promises";
 
+import { Database, DatabaseOptions } from "./db/Database";
 export { Schema, Value } from "./db/Schema";
-export type { Model } from "./db/Model";
+export { Model } from "./db/Model";
 export type { Database } from "./db/Database";
 export type { WithDocument } from "./db/Document";
 
@@ -18,9 +19,9 @@ export async function createDatabase(
   });
 
   try {
-    await db._create();
+    await fs.readdir(this.path).catch(async () => await fs.mkdir(this.path));
     return db;
   } catch {
-    return null;
+    throw new Error("Can not create directory");
   }
 }

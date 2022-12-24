@@ -27,26 +27,18 @@ export class Database {
     }
   }
 
-  async _create() {
-    try {
-      await fs.readdir(this.path).catch(async () => await fs.mkdir(this.path));
-    } catch {
-      throw new Error("Can not create directory");
-    }
-  }
-
-  async createModel<T extends any>(
-    modelName: string,
-    schema: Schema<T>
-  ): Promise<Model<T>> {
-    const model = new Model({
-      modelName,
-      schema,
-      dbPath: this.path,
-      enc_pass: this._enc,
+  async registerModel<T extends any>(model: Model<T>): Promise<void> {
+    Object.defineProperty(model, "_enc", {
+      value: this._enc,
+      enumerable: false,
     });
+    Object.defineProperty(model, "dbPath", {
+      value: this.path,
+      enumerable: false,
+    });
+
     try {
-      const p = path.join(this.path, modelName + ".dann");
+      const p = path.join(this.path, model.modelName + ".dann");
       await fs.readFile(p).catch(() => {
         fs.writeFile(p, "");
       });
@@ -56,6 +48,5 @@ export class Database {
       );
     }
     this._models.push(model);
-    return model;
   }
 }
