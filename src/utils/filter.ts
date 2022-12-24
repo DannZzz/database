@@ -16,6 +16,8 @@ export function FilterFunction(
   onlyOne: boolean = false
 ): WithDocument<any>[] | WithDocument<any> {
   const founds: WithDocument<any>[] = [];
+  if (!_filter || Object.keys(_filter).length === 0)
+    return onlyOne ? [...db][0] : [...db];
   const filter = { ..._filter };
   FilterMethods.forEach((method) => {
     if (method in filter) {

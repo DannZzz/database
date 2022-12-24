@@ -10,10 +10,14 @@ import {
   Filter,
   FilterMethods,
   ObjectWithId,
+  ReservedObject,
+  ReservedValues,
+  Update,
 } from "../typing/types";
 import { Document, WithDocument } from "./Document";
 import { uuid } from "anytool";
 import { FilterFunction } from "../utils/filter";
+import { UpdateFunction } from "../utils/update";
 
 interface ModelOptions<T extends any> {
   schema: Schema<T>;
@@ -61,7 +65,7 @@ export class Model<T extends AnyObject> {
         ) as WithDocument<T>[];
       } else return arr;
     }
-    return arr.map((str: string) => toReadable(str, this._enc));
+    return arr.map((str: string) => toReadable(str, this._enc)) as any;
   }
 
   async getById(_id: string): Promise<WithDocument<T> | null> {
@@ -79,7 +83,7 @@ export class Model<T extends AnyObject> {
     ) as WithDocument<T>;
   }
 
-  async all(filter?: Filter<T>): Promise<WithDocument<T>[]> {
+  async all(filter?: Filter<ReservedObject<T>>): Promise<WithDocument<T>[]> {
     const db = await this.db("document");
     let toAdd = db;
     if (filter) {
@@ -94,7 +98,9 @@ export class Model<T extends AnyObject> {
     return toAdd;
   }
 
-  async get(filter: Filter<T>): Promise<WithDocument<T> | null> {
+  async get(
+    filter: Filter<ReservedObject<T>>
+  ): Promise<WithDocument<T> | null> {
     const db = await this.db("document");
 
     const one =
@@ -105,13 +111,109 @@ export class Model<T extends AnyObject> {
     return one;
   }
 
-  async create(document: T): Promise<WithDocument<T> | null> {
-    const { _id, ...values } = document;
+  async deleteById(_id: string): Promise<void> {
+    const db = await this.db("document");
+
+    const one = db.find((obj) => obj._id === _id);
+    if (!one) return;
+
+    await writeModel(
+      this.dbPath,
+      this.modelName,
+      db
+        .filter((obj) => obj._id !== one._id)
+        .map((obj) => toBase(obj.toJson(), this._enc))
+    );
+  }
+
+  async delete(filter: Filter<ReservedObject<T>>): Promise<void> {
+    const db = await this.db("document");
+
+    const one =
+      typeof filter === "function"
+        ? db.find(filter)
+        : FilterFunction(filter, db, true);
+
+    if (!one) return;
+
+    await writeModel(
+      this.dbPath,
+      this.modelName,
+      db
+        .filter((obj) => obj._id !== one._id)
+        .map((obj) => toBase(obj.toJson(), this._enc))
+    );
+  }
+
+  async deleteAll(): Promise<void>;
+  async deleteAll(filter: Filter<ReservedObject<T>>): Promise<void>;
+  async deleteAll(filter?: Filter<ReservedObject<T>>): Promise<void> {
+    const db = await this.db("document");
+
+    if (!filter) {
+      await writeModel(this.dbPath, this.modelName, []);
+      return;
+    }
+
+    const docs =
+      typeof filter === "function"
+        ? db.filter(filter)
+        : FilterFunction(filter, db);
+
+    await writeModel(
+      this.dbPath,
+      this.modelName,
+      db
+        .filter((obj) => !docs.find((doc) => doc._id === obj._id))
+        .map((obj) => toBase(obj.toJson(), this._enc))
+    );
+  }
+
+  async update(
+    filter: Filter<ReservedObject<T>>,
+    update: Update<T>
+  ): Promise<WithDocument<T>> {
+    const db = await this.db("document");
+    const updated = UpdateFunction(filter, update, db, true);
+    db[db.findIndex((obj) => obj._id === updated._id)] = updated;
+    await writeModel(
+      this.dbPath,
+      this.modelName,
+      db.map((obj) => toBase(obj.toJson(), this._enc))
+    );
+    return updated;
+  }
+
+  async updateAll(
+    filter: Filter<ReservedObject<T>>,
+    update: Update<T>
+  ): Promise<WithDocument<T>[]> {
+    const db = await this.db("document");
+
+    const updated = UpdateFunction(filter, update, db);
+
+    await writeModel(
+      this.dbPath,
+      this.modelName,
+      db.map((f) =>
+        toBase(
+          updated.find((upt) => upt._id === f._id)?.toJson?.() || f.toJson(),
+          this._enc
+        )
+      )
+    );
+    return updated;
+  }
+
+  async create(
+    document: Omit<T, keyof ReservedValues>
+  ): Promise<WithDocument<T> | null> {
+    const { _id, _createdAt, ...values } = document;
     if (!this.schema.compare(values)) return null;
 
     for (let key in values) {
       if (this.schema?.schema?.[key]?.unique) {
-        if (await this.get({ [key]: values[key] }))
+        if (await this.get({ [key]: values[key as any] }))
           throw new Error(`Trying to duplicate unique value for key: ${key}`);
       }
     }
@@ -127,11 +229,12 @@ export class Model<T extends AnyObject> {
         },
         {
           _id: id,
+          _createdAt: new Date(),
           ...values,
         } as any
       ) as WithDocument<T>;
       const asArr = await this.db(true);
-      const enced = toBase(asDocument, this._enc);
+      const enced = toBase(asDocument.toJson(), this._enc);
       asArr.push(enced);
       await writeModel(this.dbPath, this.modelName, asArr);
       return asDocument;
