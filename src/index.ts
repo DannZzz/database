@@ -19,7 +19,9 @@ export async function createDatabase(
   });
 
   try {
-    await fs.readdir(this.path).catch(async () => await fs.mkdir(this.path));
+    await fs
+      .readdir(resolvedPath)
+      .catch(async () => await fs.mkdir(resolvedPath));
     return db;
   } catch {
     throw new Error("Can not create directory");

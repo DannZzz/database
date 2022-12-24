@@ -2,6 +2,7 @@ import { Model } from "./Model";
 import { Schema } from "./Schema";
 import fs from "fs/promises";
 import path from "path";
+import { SECRET_PASS } from "../config";
 
 export interface DatabaseOptions {
   path: string;
@@ -18,12 +19,16 @@ export class Database {
   constructor(options: DatabaseOptions);
   constructor(options: DatabaseOptions | string) {
     this.path = typeof options === "string" ? options : options.path;
-    if (typeof options === "object") {
-      if (options.enc_pass)
-        Object.defineProperty(this, "_enc", {
-          value: options.enc_pass,
-          enumerable: false,
-        });
+    if (typeof options === "object" && options.enc_pass) {
+      Object.defineProperty(this, "_enc", {
+        value: options.enc_pass,
+        enumerable: false,
+      });
+    } else {
+      Object.defineProperty(this, "_enc", {
+        value: SECRET_PASS,
+        enumerable: false,
+      });
     }
   }
 
