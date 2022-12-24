@@ -41,3 +41,8 @@ export interface ReservedValues {
   _id: string;
   _createdAt: Date;
 }
+
+export const ReservedWordsArray: Array<keyof ReservedValues> = [
+  "_createdAt",
+  "_id",
+];

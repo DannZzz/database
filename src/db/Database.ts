@@ -2,25 +2,16 @@ import { Model } from "./Model";
 import { Schema } from "./Schema";
 import fs from "fs/promises";
 import path from "path";
-import { Document } from "./Document";
 
-interface DatabaseOptions {
+export interface DatabaseOptions {
   path: string;
   enc_pass?: string;
-}
-
-export interface DATABASE_EVENTS {
-  delete: <T>(doc: Document<T>) => void;
-  update: <T>(oldDoc: Document<T>, newDoc: Document<T>) => void;
-  create: <T>(doc: Document<T>) => void;
 }
 
 export class Database {
   readonly path: string;
   private readonly _enc: string;
-  private _listeners: Array<{
-    [k in keyof DATABASE_EVENTS]: { [k: string]: DATABASE_EVENTS[k][] };
-  }> = [];
+
   private readonly _models: Model<any>[] = [];
 
   constructor(path: string);
@@ -35,16 +26,6 @@ export class Database {
         });
     }
   }
-
-  get listeners() {
-    return this._listeners;
-  }
-
-  on<K extends keyof DATABASE_EVENTS>(
-    event: K,
-    modelName: string,
-    cb: DATABASE_EVENTS[K]
-  ) {}
 
   async _create() {
     try {

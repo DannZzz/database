@@ -18,6 +18,7 @@ import { Document, WithDocument } from "./Document";
 import { uuid } from "anytool";
 import { FilterFunction } from "../utils/filter";
 import { UpdateFunction } from "../utils/update";
+import { BaseEvent } from "./Event";
 
 interface ModelOptions<T extends any> {
   schema: Schema<T>;
@@ -26,13 +27,14 @@ interface ModelOptions<T extends any> {
   enc_pass?: string;
 }
 
-export class Model<T extends AnyObject> {
+export class Model<T extends AnyObject> extends BaseEvent<T> {
   private readonly dbPath: string;
   schema: Schema<T>;
   modelName: string;
   private readonly _enc: string;
 
   constructor(options: ModelOptions<T>) {
+    super();
     this.dbPath = options.dbPath;
     this.schema = options.schema;
     this.modelName = options.modelName;
@@ -124,6 +126,7 @@ export class Model<T extends AnyObject> {
         .filter((obj) => obj._id !== one._id)
         .map((obj) => toBase(obj.toJson(), this._enc))
     );
+    this.emit("delete", one);
   }
 
   async delete(filter: Filter<ReservedObject<T>>): Promise<void> {
@@ -143,6 +146,7 @@ export class Model<T extends AnyObject> {
         .filter((obj) => obj._id !== one._id)
         .map((obj) => toBase(obj.toJson(), this._enc))
     );
+    this.emit("delete", one);
   }
 
   async deleteAll(): Promise<void>;
@@ -152,6 +156,7 @@ export class Model<T extends AnyObject> {
 
     if (!filter) {
       await writeModel(this.dbPath, this.modelName, []);
+      db.forEach((doc) => this.emit("delete", doc));
       return;
     }
 
@@ -167,6 +172,8 @@ export class Model<T extends AnyObject> {
         .filter((obj) => !docs.find((doc) => doc._id === obj._id))
         .map((obj) => toBase(obj.toJson(), this._enc))
     );
+
+    docs.forEach((doc) => this.emit("delete", doc));
   }
 
   async update(
@@ -175,12 +182,14 @@ export class Model<T extends AnyObject> {
   ): Promise<WithDocument<T>> {
     const db = await this.db("document");
     const updated = UpdateFunction(filter, update, db, true);
+    const oldClone = db.find((obj) => obj._id === updated._id).clone();
     db[db.findIndex((obj) => obj._id === updated._id)] = updated;
     await writeModel(
       this.dbPath,
       this.modelName,
       db.map((obj) => toBase(obj.toJson(), this._enc))
     );
+    this.emit("update", oldClone, updated);
     return updated;
   }
 
@@ -202,6 +211,15 @@ export class Model<T extends AnyObject> {
         )
       )
     );
+
+    updated.forEach((doc) => {
+      this.emit(
+        "update",
+        db.find((obj) => obj._id === doc._id),
+        doc
+      );
+    });
+
     return updated;
   }
 
@@ -237,6 +255,7 @@ export class Model<T extends AnyObject> {
       const enced = toBase(asDocument.toJson(), this._enc);
       asArr.push(enced);
       await writeModel(this.dbPath, this.modelName, asArr);
+      this.emit("create", asDocument);
       return asDocument;
     } catch {
       throw new Error("Unexpected Error at creating document");

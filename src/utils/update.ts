@@ -1,5 +1,10 @@
 import { WithDocument } from "../db/Document";
-import { Filter, Update, UpdateMethods } from "../typing/types";
+import {
+  Filter,
+  ReservedWordsArray,
+  Update,
+  UpdateMethods,
+} from "../typing/types";
 import { FilterFunction } from "./filter";
 import { typeCheck } from "type-check";
 
@@ -32,6 +37,7 @@ export function UpdateFunction(
       switch (method) {
         case "$set": {
           for (let k in update[method]) {
+            if (ReservedWordsArray.includes(k as any)) continue;
             arr = arr.map((obj) => {
               obj[k] = update[method][k];
               return obj;
@@ -42,6 +48,7 @@ export function UpdateFunction(
 
         case "$inc": {
           for (let k in update[method]) {
+            if (ReservedWordsArray.includes(k as any)) continue;
             if (!typeCheck("Number", update[method][k])) continue;
             arr = arr.map((obj) => {
               if (typeCheck("Number", obj[k])) obj[k] += update[method][k];
@@ -53,6 +60,8 @@ export function UpdateFunction(
 
         case "$push": {
           for (let k in update[method]) {
+            if (ReservedWordsArray.includes(k as any)) continue;
+
             arr = arr.map((obj) => {
               if (typeCheck("Array", obj[k])) obj[k].push(update[method][k]);
               return obj;

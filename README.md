@@ -4,6 +4,10 @@ Database System written with TypeScript
 
 `All data is encrypted in model files`
 
+## Events are Available!!
+
+[See Events](#events)
+
 ## $ Installation
 
 ```shell
@@ -289,7 +293,32 @@ const userJson = userDocument.toJson();
 
 </details>
 
+# Events
+
+Each Model now has Event System
+
+There are 3 types of events
+
+`create, delete, update`
+
+```javascript
+// create
+users.on("create", (doc) => {
+  // created document
+  console.log(doc._id);
+});
+
+users.on("delete", (doc) => {
+  // deleted document
+  console.log(doc._id);
+});
+
+users.on("update", (oldDoc, newDoc) => {
+  // newDoc is the updated version of oldDoc
+  console.log(oldDoc, newDoc);
+});
+```
+
 # Feature Updates
 
-- Events
 - Nested object filtering and updating

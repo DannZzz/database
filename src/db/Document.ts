@@ -68,7 +68,7 @@ export class Document<T extends AnyObject> implements ReservedValues {
     if (updateDefs) this.updateDefaults();
   }
 
-  clone(): Document<T> {
+  clone(): WithDocument<T> {
     return new Document(
       {
         dbPath: this.dbPath,
@@ -77,7 +77,7 @@ export class Document<T extends AnyObject> implements ReservedValues {
         modelName: this.modelName,
       },
       this as any
-    );
+    ) as any;
   }
 
   private async updateDefaults() {
