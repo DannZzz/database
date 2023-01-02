@@ -32,26 +32,29 @@ export class Database {
     }
   }
 
-  async registerModel<T extends any>(model: Model<T>): Promise<void> {
-    Object.defineProperty(model, "_enc", {
-      value: this._enc,
-      enumerable: false,
-    });
-    Object.defineProperty(model, "dbPath", {
-      value: this.path,
-      enumerable: false,
-    });
-
-    try {
-      const p = path.join(this.path, model.modelName + ".dann");
-      await fs.readFile(p).catch(() => {
-        fs.writeFile(p, "");
+  async registerModels(...models: Model<any>[]): Promise<void> {
+    for (let model of models) {
+      Object.defineProperty(model, "_enc", {
+        value: this._enc,
+        enumerable: false,
       });
-    } catch {
-      throw new Error(
-        "Can't create model file, maybe parent folder doesn't exist"
-      );
+      Object.defineProperty(model, "dbPath", {
+        value: this.path,
+        enumerable: false,
+      });
+
+      try {
+        const p = path.join(this.path, model.modelName + ".dann");
+        await fs.readFile(p).catch(() => {
+          fs.writeFile(p, "");
+        });
+      } catch {
+        console.log(
+          "Can't create model file, maybe parent folder doesn't exist"
+        );
+        continue;
+      }
+      this._models.push(model);
     }
-    this._models.push(model);
   }
 }

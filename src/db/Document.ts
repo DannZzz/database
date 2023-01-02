@@ -1,6 +1,5 @@
 import {
   AnyObject,
-  ObjectWithId,
   ReservedObject,
   ReservedValues,
 } from "../typing/types";

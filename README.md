@@ -8,6 +8,12 @@ Database System written with TypeScript
 
 [See Events](#events)
 
+## New Filter IN Methods
+
+$in, $nin
+
+[See Filter IN Methods](#filter-and-update)
+
 ## $ Installation
 
 ```shell
@@ -35,11 +41,11 @@ const dbWithCustomPassphrase = await createDatabase({
 });
 ```
 
-# Creating schema
+# Creating schema and model
 
 ```javascript
 // JavaScript
-import { Schema, Value } from "@onlydann/database";
+import { Schema, Value, Model } from "@onlydann/database";
 
 const userSchema = new Schema({
     username: new Value("string", {unique: true}),
@@ -48,11 +54,15 @@ const userSchema = new Schema({
     tags: new Value("array", {default: []}),
     endsIn: new Value("date"), {default: () => new Date()}
 });
+
+const UserModel = new Model("users", userSchema);
+
+export default UserModel;
 ```
 
 ```typescript
 // TypeScript
-import { Schema, Value } from "@onlydann/database";
+import { Schema, Value, Model } from "@onlydann/database";
 
 interface User {
   _id: string;
@@ -71,6 +81,11 @@ const userSchema = new Schema<User>({
     tags: new Value("array", {default: []}),
     endsIn: new Value("date"), {default: () => new Date()}
 });
+
+
+const UserModel = new Model("users", userSchema);
+
+export default UserModel;
 ```
 
 # Default (Reserved) properties
@@ -99,6 +114,10 @@ await users.get({ username: "Dann" });
 await users.all({ $or: { username: "Dann", age: 20 } });
 // callback filter function, first arg is document, must return boolean
 await users.delete((doc) => doc.tags.length > 10);
+// if any doc's username in array
+await users.get({ username: { $in: ["Dann", "Meri"] } });
+// if any doc's username NOT in array
+await users.get({ username: { $nin: ["Dann", "Meri"] } });
 ```
 
 **Update**
@@ -115,11 +134,11 @@ await users.update(filter, { $push: { tags: "developer" } });
 
 # Model
 
-Create a model
+Register a models
 
 ```javascript
-// creation with constructor not allowed ( new Model(...) )
-const users = await db.createModel("users", userSchema);
+await db.registerModels(UserModel);
+// await db.registerModels(UserModel, MessageModel, AnyModel, ...);
 ```
 
 Methods
@@ -131,11 +150,29 @@ Create a document
 it takes one argument
 
 ```javascript
-// others props are optionan and have default values
+// others props are optional and have default values
 const userDocument = await users.create({
   username: "Dann",
   password: "1234",
 });
+```
+
+</details>
+
+<details>
+<summary>createAll</summary>
+Create documents
+
+it takes one argument - array
+
+```javascript
+const userDocument = await users.createAll([
+  {
+    username: "Dann",
+    password: "1234",
+  },
+  { username: "Meri", password: "cuteOne" },
+]);
 ```
 
 </details>

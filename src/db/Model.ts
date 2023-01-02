@@ -209,6 +209,52 @@ export class Model<T extends AnyObject> extends BaseEvent<T> {
     return updated;
   }
 
+  async createAll(
+    documents: Array<Omit<T, keyof ReservedValues>>
+  ): Promise<Array<WithDocument<T>>> {
+    const created = await Promise.all(
+      documents.map(async (document) => {
+        const { _id, _createdAt, ...values } = document;
+        if (!this.schema.compare(values)) return null;
+
+        for (let key in values) {
+          if (this.schema?.schema?.[key]?.unique) {
+            if (await this.get({ [key]: values[key as any] }))
+              console.log(`Trying to duplicate unique value for key: ${key}`);
+            return null;
+          }
+        }
+
+        try {
+          const id = await this.generateId();
+          const asDocument = new Document(
+            {
+              dbPath: this.dbPath,
+              enc_pass: this._enc,
+              modelName: this.modelName,
+              schema: this.schema,
+            },
+            {
+              _id: id,
+              _createdAt: new Date(),
+              ...values,
+            } as any
+          ) as WithDocument<T>;
+          const asArr = await this.db(true);
+          const enced = toBase(asDocument.toJson(), this._enc);
+          asArr.push(enced);
+          await writeModel(this.dbPath, this.modelName, asArr);
+          this.emit("create", asDocument);
+          return asDocument;
+        } catch {
+          console.log("Unexpected Error at creating document");
+          return null;
+        }
+      })
+    );
+    return created.filter((f) => !!f);
+  }
+
   async create(
     document: Omit<T, keyof ReservedValues>
   ): Promise<WithDocument<T> | null> {

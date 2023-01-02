@@ -49,12 +49,41 @@ export function FilterFunction(
   if (filterKeys.length) {
     if (onlyOne) {
       return (
-        db.find((f) => filterKeys.every((key) => f[key] === filter[key])) ||
-        null
+        db.find((f) =>
+          filterKeys.every((key) => {
+            if (filter[key] instanceof Object) {
+              if (filter[key]["$in"]) {
+                const arr = filter[key]["$in"];
+                if (!Array.isArray(arr)) return false;
+                return arr.includes(f[key]);
+              } else if (filter[key]["$nin"]) {
+                const arr = filter[key]["$nin"];
+                if (!Array.isArray(arr)) return false;
+                return !arr.includes(f[key]);
+              }
+            }
+            return f[key] === filter[key];
+          })
+        ) || null
       );
     } else {
       db.forEach((f) => {
-        if (filterKeys.every((key) => f[key] === filter[key])) {
+        if (
+          filterKeys.every((key) => {
+            if (filter[key] instanceof Object) {
+              if (filter[key]["$in"]) {
+                const arr = filter[key]["$in"];
+                if (!Array.isArray(arr)) return false;
+                return arr.includes(f[key]);
+              } else if (filter[key]["$nin"]) {
+                const arr = filter[key]["$nin"];
+                if (!Array.isArray(arr)) return false;
+                return !arr.includes(f[key]);
+              }
+            }
+            return f[key] === filter[key];
+          })
+        ) {
           founds.push(f);
         }
       });

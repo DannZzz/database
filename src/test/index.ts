@@ -10,7 +10,7 @@ createDatabase("./db").then(async (db) => {
     })
   );
 
-  await db.registerModel(model);
+  await db.registerModels(model);
 
   model.on("create", (doc) => {
     console.log("event", doc);
@@ -27,7 +27,7 @@ createDatabase("./db").then(async (db) => {
 
   // setTimeout(() => {
   // (await model.create({}).);
-  await model.create({ hello: "asgfdd" });
+  // await model.create({ hello: "asgfddda" });
   // await model.deleteAll();
   // console.log(await model.all());
   // }, 5000);
@@ -35,7 +35,6 @@ createDatabase("./db").then(async (db) => {
   // await model.create({ hello: "lolitdsaa" });
   // await model.create({ das: 10 });
 
-  await model.update({ hello: "asgfdd" }, { $inc: { das: 100 } });
   // await model.deleteAll();
   console.log(await model.all());
   // await model.getById("");
